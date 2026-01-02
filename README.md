@@ -140,7 +140,7 @@ This means:
 3. Select **Source: Deploy from a branch**
 4. Select **Branch: main** and **/ (root)**
 5. Click **Save**
-6. Your site will be live at: `https://yourusername.github.io/vocabforge`
+6. Your site will be live at: `https://adembtr.github.io/wordsWebsite/`
 
 ### Option 2: Local Usage
 
