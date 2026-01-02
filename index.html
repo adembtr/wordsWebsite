@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VocabForge | Spaced Repetition English Learning</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Background animated elements -->
+    <div class="bg-decoration">
+        <div class="bg-circle bg-circle-1"></div>
+        <div class="bg-circle bg-circle-2"></div>
+        <div class="bg-circle bg-circle-3"></div>
+        <div class="grid-overlay"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header Section -->
+        <header class="app-header">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none">
+                        <rect x="4" y="4" width="32" height="32" rx="8" stroke="currentColor" stroke-width="2"/>
+                        <path d="M12 14h16M12 20h12M12 26h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="30" cy="26" r="4" fill="currentColor"/>
+                    </svg>
+                </div>
+                <h1 class="logo-text">VocabForge</h1>
+            </div>
+            <div class="time-display">
+                <div class="time-label">Istanbul Time</div>
+                <div class="time-value" id="currentTime">--:--:--</div>
+                <div class="time-date" id="currentDate">Loading...</div>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="totalWords">0</span>
+                <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item stat-due">
+                <span class="stat-number" id="dueWords">0</span>
+                <span class="stat-label">Due Now</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-number" id="masteredWords">0</span>
+                <span class="stat-label">Mastered</span>
+            </div>
+        </div>
+
+        <!-- Main Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-primary btn-study" id="btnStudy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <span>Study Now</span>
+                <span class="btn-badge" id="studyBadge">0</span>
+            </button>
+            <button class="btn btn-secondary btn-add" id="btnAdd">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>Add Word</span>
+            </button>
+        </div>
+
+        <!-- Word List Section -->
+        <section class="word-list-section">
+            <div class="section-header">
+                <h2>Your Vocabulary</h2>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="due">Due</button>
+                    <button class="filter-tab" data-filter="learning">Learning</button>
+                </div>
+            </div>
+            <div class="word-list" id="wordList">
+                <!-- Words will be dynamically inserted here -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📚</div>
+                    <p>No words yet. Add your first word to start learning!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- YouTube Videos Management -->
+        <section class="videos-section">
+            <div class="section-header">
+                <h2>Video Sources</h2>
+                <button class="btn btn-small btn-add-video" id="btnAddVideo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add Video
+                </button>
+            </div>
+            <div class="video-list" id="videoList">
+                <div class="empty-state" id="emptyVideoState">
+                    <div class="empty-icon">🎬</div>
+                    <p>No videos added. Add YouTube videos with English subtitles.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Add Word Modal -->
+    <div class="modal" id="addWordModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Word</h3>
+                <button class="modal-close" id="closeAddModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="wordInput">English Word</label>
+                    <input type="text" id="wordInput" placeholder="e.g., consider" autocomplete="off" autocapitalize="none">
+                </div>
+                <div class="form-group">
+                    <label for="meaningInput">Meaning (Turkish)</label>
+                    <input type="text" id="meaningInput" placeholder="e.g., düşünmek, dikkate almak">
+                </div>
+                <div class="form-group">
+                    <label for="notesInput">Notes (optional)</label>
+                    <textarea id="notesInput" placeholder="Etymology, example sentences, etc."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="cancelAddWord">Cancel</button>
+                <button class="btn btn-primary" id="confirmAddWord">Add Word</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Video Modal -->
+    <div class="modal" id="addVideoModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add YouTube Video</h3>
+                <button class="modal-close" id="closeVideoModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="videoTitleInput">Title</label>
+                    <input type="text" id="videoTitleInput" placeholder="e.g., TED Talk - How to learn anything">
+                </div>
+                <div class="form-group">
+                    <label for="videoUrlInput">YouTube URL</label>
+                    <input type="text" id="videoUrlInput" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+                <div class="form-group">
+                    <label for="subtitlesInput">Subtitles</label>
+                    <textarea id="subtitlesInput" placeholder="Paste subtitles here in format:
+0:00 First sentence here...
+0:05 Second sentence here...
+0:12 Third sentence here..." rows="8"></textarea>
+                </div>
+                <p class="form-hint">Copy subtitles from YouTube (click "..." → "Show transcript") and paste above.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="cancelAddVideo">Cancel</button>
+                <button class="btn btn-primary" id="confirmAddVideo">Add Video</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Study Modal -->
+    <div class="modal modal-fullscreen" id="studyModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content study-content">
+            <div class="study-header">
+                <button class="btn-back" id="backFromStudy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div class="study-progress">
+                    <span id="studyProgressText">0 / 0</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="studyProgressBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Study List View -->
+            <div class="study-view" id="studyListView">
+                <div class="study-list-header">
+                    <h2>Words Due for Review</h2>
+                    <button class="btn btn-primary btn-start-all" id="btnStartAll">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Start All
+                    </button>
+                </div>
+                <div class="due-words-list" id="dueWordsList">
+                    <!-- Due words will be listed here -->
+                </div>
+            </div>
+
+            <!-- Single Word Study View -->
+            <div class="study-view hidden" id="singleWordView">
+                <div class="word-card">
+                    <div class="word-stage" id="wordStage">Stage 1</div>
+                    <div class="word-main" id="studyWordMain">word</div>
+                    <div class="word-meaning hidden" id="studyWordMeaning">meaning</div>
+                    <div class="word-notes hidden" id="studyWordNotes">notes</div>
+                </div>
+
+                <!-- Video Player Area -->
+                <div class="video-player-area hidden" id="videoPlayerArea">
+                    <div class="video-container">
+                        <div id="youtubePlayer"></div>
+                    </div>
+                    <div class="subtitle-display" id="subtitleDisplay">
+                        <!-- Current sentence will be shown here -->
+                    </div>
+                    <div class="video-controls">
+                        <button class="btn btn-video" id="btnReplay">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 4v6h6M23 20v-6h-6"/>
+                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                            </svg>
+                            Watch Again
+                        </button>
+                        <button class="btn btn-video" id="btnNextExample">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 4 15 12 5 20 5 4"/>
+                                <line x1="19" y1="5" x2="19" y2="19"/>
+                            </svg>
+                            Next Example
+                        </button>
+                    </div>
+                </div>
+
+                <!-- No Video Found Message -->
+                <div class="no-video-message hidden" id="noVideoMessage">
+                    <div class="no-video-icon">🔍</div>
+                    <p>No video examples found for this word.</p>
+                    <p class="hint">Add more YouTube videos with subtitles to find examples.</p>
+                </div>
+
+                <!-- Study Actions -->
+                <div class="study-actions">
+                    <button class="btn btn-action btn-show" id="btnShowMeaning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        Show Meaning
+                    </button>
+                    <button class="btn btn-action btn-find-video" id="btnFindVideo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+                            <line x1="7" y1="2" x2="7" y2="22"/>
+                            <line x1="17" y1="2" x2="17" y2="22"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <line x1="2" y1="7" x2="7" y2="7"/>
+                            <line x1="2" y1="17" x2="7" y2="17"/>
+                            <line x1="17" y1="17" x2="22" y2="17"/>
+                            <line x1="17" y1="7" x2="22" y2="7"/>
+                        </svg>
+                        Find in Videos
+                    </button>
+                </div>
+
+                <!-- Response Buttons -->
+                <div class="response-buttons hidden" id="responseButtons">
+                    <button class="btn btn-response btn-dont-know" id="btnDontKnow">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        Don't Know
+                        <span class="next-review">Review again now</span>
+                    </button>
+                    <button class="btn btn-response btn-know" id="btnKnow">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        I Know
+                        <span class="next-review" id="nextReviewTime">Next: 12 hours</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p id="loadingText">Loading subtitles...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
