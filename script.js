@@ -688,14 +688,21 @@ function closeAddVideoModal() {
  */
 function handleSubtitleFileUpload(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log('No file selected');
+        return;
+    }
     
-    // Check file type
-    const validTypes = ['.txt', '.srt'];
-    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
     
-    if (!validTypes.includes(fileExtension)) {
+    // Check file extension (more reliable than MIME type on mobile)
+    const fileName = file.name.toLowerCase();
+    const validExtensions = ['.txt', '.srt'];
+    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (!hasValidExtension) {
         showToast('Please upload a .txt or .srt file', 'error');
+        event.target.value = ''; // Reset input
         return;
     }
     
@@ -703,67 +710,104 @@ function handleSubtitleFileUpload(event) {
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
         showToast('File is too large! Maximum size is 10MB', 'error');
+        event.target.value = ''; // Reset input
         return;
     }
     
-    // Show loading state
-    const uploadButton = document.getElementById('btnUploadSubtitleFile');
-    const originalText = uploadButton ? uploadButton.innerHTML : '';
-    if (uploadButton) {
-        uploadButton.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    // Show loading state on the label (not button anymore)
+    const uploadLabel = document.querySelector('label[for="subtitleFileInput"]');
+    const originalHTML = uploadLabel ? uploadLabel.innerHTML : '';
+    if (uploadLabel) {
+        uploadLabel.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
                 <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
             </svg>
             Reading file...
         `;
-        uploadButton.disabled = true;
+        uploadLabel.style.pointerEvents = 'none';
     }
+    
+    // Add spinning animation inline for loading indicator
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
     
     // Read the file
     const reader = new FileReader();
     
     reader.onload = function(e) {
-        const content = e.target.result;
-        
-        // Populate the textarea
-        const subtitlesInput = document.getElementById('subtitlesInput');
-        if (subtitlesInput) {
-            subtitlesInput.value = content;
+        try {
+            const content = e.target.result;
+            
+            if (!content) {
+                throw new Error('File is empty or could not be read');
+            }
+            
+            console.log('File read successfully, length:', content.length);
+            
+            // Populate the textarea
+            const subtitlesInput = document.getElementById('subtitlesInput');
+            if (subtitlesInput) {
+                subtitlesInput.value = content;
+                console.log('Textarea populated');
+            } else {
+                console.error('Subtitle textarea not found');
+            }
+            
+            // Show success message
+            const fileNameDisplay = document.getElementById('uploadedFileName');
+            if (fileNameDisplay) {
+                fileNameDisplay.textContent = file.name;
+            }
+            
+            // Restore label
+            if (uploadLabel) {
+                uploadLabel.innerHTML = originalHTML;
+                uploadLabel.style.pointerEvents = '';
+            }
+            
+            showToast(`File "${file.name}" loaded successfully!`, 'success');
+            
+        } catch (error) {
+            console.error('Error processing file:', error);
+            showToast('Error processing file. Please try again.', 'error');
+            
+            // Restore label
+            if (uploadLabel) {
+                uploadLabel.innerHTML = originalHTML;
+                uploadLabel.style.pointerEvents = '';
+            }
         }
-        
-        // Show success message
-        const fileNameDisplay = document.getElementById('uploadedFileName');
-        if (fileNameDisplay) {
-            fileNameDisplay.textContent = file.name;
-        }
-        
-        // Restore button
-        if (uploadButton) {
-            uploadButton.innerHTML = originalText;
-            uploadButton.disabled = false;
-        }
-        
-        showToast(`File "${file.name}" loaded successfully!`, 'success');
-        
-        // Clear the file input so the same file can be selected again
-        event.target.value = '';
     };
     
-    reader.onerror = function() {
+    reader.onerror = function(error) {
+        console.error('FileReader error:', error);
         showToast('Error reading file. Please try again.', 'error');
         
-        // Restore button
-        if (uploadButton) {
-            uploadButton.innerHTML = originalText;
-            uploadButton.disabled = false;
+        // Restore label
+        if (uploadLabel) {
+            uploadLabel.innerHTML = originalHTML;
+            uploadLabel.style.pointerEvents = '';
         }
         
-        // Clear the file input
+        // Reset input
         event.target.value = '';
     };
     
-    // Start reading the file as text
-    reader.readAsText(file, 'UTF-8');
+    // Start reading the file as text with explicit UTF-8 encoding
+    try {
+        reader.readAsText(file, 'UTF-8');
+    } catch (error) {
+        console.error('Error starting file read:', error);
+        showToast('Error reading file. Please try again.', 'error');
+        
+        // Restore label
+        if (uploadLabel) {
+            uploadLabel.innerHTML = originalHTML;
+            uploadLabel.style.pointerEvents = '';
+        }
+    }
 }
 
 function handleSaveWord() {
@@ -1387,11 +1431,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelAddVideo')?.addEventListener('click', closeAddVideoModal);
     document.getElementById('confirmAddVideo')?.addEventListener('click', handleSaveVideo);
     
-    // Subtitle File Upload
-    document.getElementById('btnUploadSubtitleFile')?.addEventListener('click', () => {
-        document.getElementById('subtitleFileInput')?.click();
-    });
-    document.getElementById('subtitleFileInput')?.addEventListener('change', handleSubtitleFileUpload);
+    // Subtitle File Upload - direct event on file input
+    const subtitleFileInput = document.getElementById('subtitleFileInput');
+    if (subtitleFileInput) {
+        subtitleFileInput.addEventListener('change', handleSubtitleFileUpload);
+        
+        // For better mobile support, also handle click event
+        subtitleFileInput.addEventListener('click', function() {
+            this.value = null; // Reset to allow re-selecting the same file
+        });
+    }
     
     // Study Button
     document.getElementById('btnStudy')?.addEventListener('click', startStudySession);

@@ -1498,6 +1498,21 @@ body {
     flex-wrap: wrap;
 }
 
+/* Hide the actual file input - using proper method for mobile compatibility */
+.file-input-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .btn-file-upload {
     display: inline-flex;
     align-items: center;
@@ -1511,9 +1526,14 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-normal);
+    /* Make it work as a label for the file input */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.btn-file-upload:hover {
+.btn-file-upload:hover,
+.btn-file-upload:active {
     background: var(--color-bg-secondary);
     border-color: var(--color-accent);
     color: var(--color-accent);
@@ -1522,6 +1542,7 @@ body {
 .btn-file-upload svg {
     width: 18px;
     height: 18px;
+    flex-shrink: 0;
 }
 
 .file-name {
@@ -1540,6 +1561,21 @@ body {
 .file-name::before {
     content: '✓';
     font-weight: bold;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .btn-file-upload {
+        width: 100%;
+        justify-content: center;
+        padding: var(--space-md);
+        font-size: var(--font-size-base);
+    }
+    
+    .file-name {
+        width: 100%;
+        text-align: center;
+    }
 }
 
 /* -----------------------------------------------------------------------------

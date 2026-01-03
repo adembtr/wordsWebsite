@@ -163,15 +163,15 @@
                 <div class="form-group">
                     <label for="subtitlesInput">Subtitles</label>
                     <div class="file-upload-section">
-                        <input type="file" id="subtitleFileInput" accept=".txt,.srt" style="display: none;">
-                        <button type="button" class="btn btn-file-upload" id="btnUploadSubtitleFile">
+                        <label for="subtitleFileInput" class="btn btn-file-upload">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                 <polyline points="17 8 12 3 7 8"/>
                                 <line x1="12" y1="3" x2="12" y2="15"/>
                             </svg>
                             Upload Subtitle File (.txt or .srt)
-                        </button>
+                        </label>
+                        <input type="file" id="subtitleFileInput" accept=".txt,.srt,text/plain,application/x-subrip" class="file-input-hidden">
                         <span class="file-name" id="uploadedFileName"></span>
                     </div>
                     <textarea id="subtitlesInput" maxlength="1572864" placeholder="Paste subtitles here in format:
