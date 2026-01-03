@@ -162,10 +162,24 @@
                 </div>
                 <div class="form-group">
                     <label for="subtitlesInput">Subtitles</label>
-                    <textarea id="subtitlesInput" placeholder="Paste subtitles here in format:
+                    <div class="file-upload-section">
+                        <input type="file" id="subtitleFileInput" accept=".txt,.srt" style="display: none;">
+                        <button type="button" class="btn btn-file-upload" id="btnUploadSubtitleFile">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Upload Subtitle File (.txt or .srt)
+                        </button>
+                        <span class="file-name" id="uploadedFileName"></span>
+                    </div>
+                    <textarea id="subtitlesInput" maxlength="1572864" placeholder="Paste subtitles here in format:
 0:00 First sentence here...
 0:05 Second sentence here...
-0:12 Third sentence here..." rows="8"></textarea>
+0:12 Third sentence here...
+
+OR click 'Upload Subtitle File' button above to load from a file." rows="8"></textarea>
                 </div>
                 <p class="form-hint">Copy subtitles from YouTube (click "..." → "Show transcript") and paste above.</p>
             </div>
@@ -243,6 +257,21 @@
                             Next Example
                         </button>
                     </div>
+                    
+                    <!-- Sequential Mode: Show Meaning Button Area -->
+                    <div class="sequential-meaning-area hidden" id="sequentialMeaningArea">
+                        <button class="btn btn-show-meaning-sequential" id="btnShowMeaningSequential">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Show Meaning
+                        </button>
+                        <div class="sequential-meaning-revealed hidden" id="sequentialMeaningRevealed">
+                            <div class="sequential-meaning-text" id="sequentialMeaningText"></div>
+                            <div class="sequential-notes-text" id="sequentialNotesText"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- No Video Found Message -->
@@ -250,6 +279,21 @@
                     <div class="no-video-icon">🔍</div>
                     <p>No video examples found for this word.</p>
                     <p class="hint">Add more YouTube videos with subtitles to find examples.</p>
+                    
+                    <!-- Sequential Mode: Show Meaning Button Area (when no video) -->
+                    <div class="sequential-meaning-area hidden" id="sequentialMeaningAreaNoVideo">
+                        <button class="btn btn-show-meaning-sequential" id="btnShowMeaningSequentialNoVideo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Show Meaning
+                        </button>
+                        <div class="sequential-meaning-revealed hidden" id="sequentialMeaningRevealedNoVideo">
+                            <div class="sequential-meaning-text" id="sequentialMeaningTextNoVideo"></div>
+                            <div class="sequential-notes-text" id="sequentialNotesTextNoVideo"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Study Actions -->

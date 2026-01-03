@@ -194,6 +194,7 @@ function saveWords() {
  */
 function loadWords() {
     const stored = localStorage.getItem('vocabforge_words');
+    
     if (stored) {
         words = JSON.parse(stored);
         words.forEach(word => {
@@ -203,6 +204,8 @@ function loadWords() {
                 word.lastReviewed = new Date(word.lastReviewed);
             }
         });
+    } else {
+        words = [];
     }
 }
 
@@ -218,8 +221,11 @@ function saveVideos() {
  */
 function loadVideos() {
     const stored = localStorage.getItem('vocabforge_videos');
+    
     if (stored) {
         videos = JSON.parse(stored);
+    } else {
+        videos = [];
     }
 }
 
@@ -662,6 +668,7 @@ function openAddVideoModal() {
     const urlInput = document.getElementById('videoUrlInput');
     const titleInput = document.getElementById('videoTitleInput');
     const subtitlesInput = document.getElementById('subtitlesInput');
+    const fileNameDisplay = document.getElementById('uploadedFileName');
     
     if (urlInput) urlInput.value = '';
     if (titleInput) {
@@ -669,10 +676,94 @@ function openAddVideoModal() {
         titleInput.focus();
     }
     if (subtitlesInput) subtitlesInput.value = '';
+    if (fileNameDisplay) fileNameDisplay.textContent = '';
 }
 
 function closeAddVideoModal() {
     closeModal('addVideoModal');
+}
+
+/**
+ * Handle subtitle file upload
+ */
+function handleSubtitleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Check file type
+    const validTypes = ['.txt', '.srt'];
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    
+    if (!validTypes.includes(fileExtension)) {
+        showToast('Please upload a .txt or .srt file', 'error');
+        return;
+    }
+    
+    // Check file size (limit to 10MB for safety)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+        showToast('File is too large! Maximum size is 10MB', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const uploadButton = document.getElementById('btnUploadSubtitleFile');
+    const originalText = uploadButton ? uploadButton.innerHTML : '';
+    if (uploadButton) {
+        uploadButton.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+            </svg>
+            Reading file...
+        `;
+        uploadButton.disabled = true;
+    }
+    
+    // Read the file
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const content = e.target.result;
+        
+        // Populate the textarea
+        const subtitlesInput = document.getElementById('subtitlesInput');
+        if (subtitlesInput) {
+            subtitlesInput.value = content;
+        }
+        
+        // Show success message
+        const fileNameDisplay = document.getElementById('uploadedFileName');
+        if (fileNameDisplay) {
+            fileNameDisplay.textContent = file.name;
+        }
+        
+        // Restore button
+        if (uploadButton) {
+            uploadButton.innerHTML = originalText;
+            uploadButton.disabled = false;
+        }
+        
+        showToast(`File "${file.name}" loaded successfully!`, 'success');
+        
+        // Clear the file input so the same file can be selected again
+        event.target.value = '';
+    };
+    
+    reader.onerror = function() {
+        showToast('Error reading file. Please try again.', 'error');
+        
+        // Restore button
+        if (uploadButton) {
+            uploadButton.innerHTML = originalText;
+            uploadButton.disabled = false;
+        }
+        
+        // Clear the file input
+        event.target.value = '';
+    };
+    
+    // Start reading the file as text
+    reader.readAsText(file, 'UTF-8');
 }
 
 function handleSaveWord() {
@@ -759,6 +850,9 @@ function closeStudyModal() {
     if (studyActions) {
         studyActions.style.display = 'flex';
     }
+    
+    // Reset sequential meaning areas
+    resetSequentialMeaningAreas();
     
     if (player) {
         try {
@@ -1086,8 +1180,11 @@ function startSequentialStudy() {
 function autoPlayForSequentialMode() {
     if (!currentStudyWord || !isSequentialMode) return;
     
-    // Show response buttons immediately in sequential mode
-    document.getElementById('responseButtons')?.classList.remove('hidden');
+    // Hide response buttons initially - they show after "Show Meaning" is clicked
+    document.getElementById('responseButtons')?.classList.add('hidden');
+    
+    // Reset the sequential meaning areas
+    resetSequentialMeaningAreas();
     
     // Try to find and play video
     if (videos.length > 0 && isYouTubeAPIReady) {
@@ -1096,12 +1193,72 @@ function autoPlayForSequentialMode() {
         
         if (currentVideoResults.length > 0) {
             playVideoResult(0);
+            // Show the sequential meaning area (with video)
+            document.getElementById('sequentialMeaningArea')?.classList.remove('hidden');
+            document.getElementById('sequentialMeaningAreaNoVideo')?.classList.add('hidden');
         } else {
             document.getElementById('noVideoMessage')?.classList.remove('hidden');
+            // Show the sequential meaning area (no video version)
+            document.getElementById('sequentialMeaningAreaNoVideo')?.classList.remove('hidden');
+            document.getElementById('sequentialMeaningArea')?.classList.add('hidden');
         }
     } else {
         document.getElementById('noVideoMessage')?.classList.remove('hidden');
+        // Show the sequential meaning area (no video version)
+        document.getElementById('sequentialMeaningAreaNoVideo')?.classList.remove('hidden');
+        document.getElementById('sequentialMeaningArea')?.classList.add('hidden');
     }
+}
+
+/**
+ * Reset sequential meaning areas to initial state
+ */
+function resetSequentialMeaningAreas() {
+    // Reset video version
+    const meaningArea = document.getElementById('sequentialMeaningArea');
+    const showBtn = document.getElementById('btnShowMeaningSequential');
+    const revealed = document.getElementById('sequentialMeaningRevealed');
+    
+    if (meaningArea) meaningArea.classList.add('hidden');
+    if (showBtn) showBtn.style.display = 'flex';
+    if (revealed) revealed.classList.add('hidden');
+    
+    // Reset no-video version
+    const meaningAreaNoVideo = document.getElementById('sequentialMeaningAreaNoVideo');
+    const showBtnNoVideo = document.getElementById('btnShowMeaningSequentialNoVideo');
+    const revealedNoVideo = document.getElementById('sequentialMeaningRevealedNoVideo');
+    
+    if (meaningAreaNoVideo) meaningAreaNoVideo.classList.add('hidden');
+    if (showBtnNoVideo) showBtnNoVideo.style.display = 'flex';
+    if (revealedNoVideo) revealedNoVideo.classList.add('hidden');
+}
+
+/**
+ * Show meaning in sequential mode (called when "Show Meaning" button is clicked)
+ */
+function showMeaningSequential(isNoVideoVersion = false) {
+    if (!currentStudyWord) return;
+    
+    const suffix = isNoVideoVersion ? 'NoVideo' : '';
+    const showBtn = document.getElementById('btnShowMeaningSequential' + suffix);
+    const revealed = document.getElementById('sequentialMeaningRevealed' + suffix);
+    const meaningText = document.getElementById('sequentialMeaningText' + suffix);
+    const notesText = document.getElementById('sequentialNotesText' + suffix);
+    
+    // Hide the "Show Meaning" button
+    if (showBtn) showBtn.style.display = 'none';
+    
+    // Show the meaning and notes
+    if (meaningText) {
+        meaningText.textContent = currentStudyWord.meaning || 'No meaning added';
+    }
+    if (notesText) {
+        notesText.textContent = currentStudyWord.notes || '';
+    }
+    if (revealed) revealed.classList.remove('hidden');
+    
+    // Now show the response buttons
+    document.getElementById('responseButtons')?.classList.remove('hidden');
 }
 
 /**
@@ -1230,6 +1387,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelAddVideo')?.addEventListener('click', closeAddVideoModal);
     document.getElementById('confirmAddVideo')?.addEventListener('click', handleSaveVideo);
     
+    // Subtitle File Upload
+    document.getElementById('btnUploadSubtitleFile')?.addEventListener('click', () => {
+        document.getElementById('subtitleFileInput')?.click();
+    });
+    document.getElementById('subtitleFileInput')?.addEventListener('change', handleSubtitleFileUpload);
+    
     // Study Button
     document.getElementById('btnStudy')?.addEventListener('click', startStudySession);
     document.getElementById('backFromStudy')?.addEventListener('click', closeStudyModal);
@@ -1242,6 +1405,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnNextExample')?.addEventListener('click', nextExample);
     document.getElementById('btnKnow')?.addEventListener('click', handleKnow);
     document.getElementById('btnDontKnow')?.addEventListener('click', handleDontKnow);
+    
+    // Sequential Mode Show Meaning buttons
+    document.getElementById('btnShowMeaningSequential')?.addEventListener('click', () => showMeaningSequential(false));
+    document.getElementById('btnShowMeaningSequentialNoVideo')?.addEventListener('click', () => showMeaningSequential(true));
     
     // Filter Tabs
     document.querySelectorAll('.filter-tab').forEach(tab => {
@@ -1284,3 +1451,4 @@ window.handleDeleteWord = handleDeleteWord;
 window.handleDeleteVideo = handleDeleteVideo;
 window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 window.nextExample = nextExample;
+window.showMeaningSequential = showMeaningSequential;

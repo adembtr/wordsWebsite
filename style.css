@@ -1138,6 +1138,77 @@ body {
     height: 16px;
 }
 
+/* Sequential Mode - Show Meaning Area */
+.sequential-meaning-area {
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.sequential-meaning-area.hidden {
+    display: none;
+}
+
+.btn-show-meaning-sequential {
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    font-size: 1rem;
+    background: linear-gradient(135deg, var(--color-info) 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+.btn-show-meaning-sequential:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), 0 0 30px var(--color-info-glow);
+}
+
+.btn-show-meaning-sequential svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Sequential Mode - Revealed Meaning */
+.sequential-meaning-revealed {
+    text-align: center;
+}
+
+.sequential-meaning-revealed.hidden {
+    display: none;
+}
+
+.sequential-meaning-text {
+    font-size: 1.25rem;
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-md);
+    padding: var(--space-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.sequential-notes-text {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    padding: var(--space-sm);
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.sequential-notes-text:empty {
+    display: none;
+}
+
 /* No Video Message */
 .no-video-message {
     text-align: center;
@@ -1414,6 +1485,61 @@ body {
         border-radius: var(--radius-lg);
         margin: auto;
     }
+}
+
+/* -----------------------------------------------------------------------------
+   File Upload Section
+   ----------------------------------------------------------------------------- */
+.file-upload-section {
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.btn-file-upload {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.btn-file-upload:hover {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.btn-file-upload svg {
+    width: 18px;
+    height: 18px;
+}
+
+.file-name {
+    font-size: var(--font-size-sm);
+    color: var(--color-success);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.file-name:empty {
+    display: none;
+}
+
+.file-name::before {
+    content: '✓';
+    font-weight: bold;
 }
 
 /* -----------------------------------------------------------------------------
