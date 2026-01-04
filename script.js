@@ -8,15 +8,24 @@
 // ===================================
 const TIMEZONE = 'Europe/Istanbul';
 
-// Spaced Repetition Intervals (in hours)
+// Spaced Repetition Intervals (in hours) - Extended version
 const INTERVALS = [
+    4,         // 4 hours
+    8,         // 8 hours
     12,        // 12 hours
+    18,        // 18 hours
     24,        // 1 day
+    36,        // 1.5 days
     48,        // 2 days
     72,        // 3 days
+    96,        // 4 days
     120,       // 5 days
     168,       // 7 days
-    360        // 15 days (final interval before deletion)
+    240,       // 10 days
+    360,       // 15 days
+    480,       // 20 days
+    600,       // 25 days
+    720        // 30 days (final interval before deletion)
 ];
 
 // ===================================
@@ -125,7 +134,9 @@ function getIntervalText(intervalIndex) {
     const hours = INTERVALS[intervalIndex];
     if (hours < 24) return `${hours} hours`;
     const days = hours / 24;
-    return days === 1 ? '1 day' : `${days} days`;
+    if (days === 1) return '1 day';
+    if (days % 1 !== 0) return `${days} days`;
+    return `${days} days`;
 }
 
 /**
@@ -176,6 +187,33 @@ function formatSeconds(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Parse word variants from text (split by comma, dot, or dash)
+ * Example: "open,opened,opening" => ["open", "opened", "opening"]
+ */
+function parseWordVariants(wordText) {
+    if (!wordText) return [];
+    
+    // Split by comma, dot, dash, or semicolon
+    const variants = wordText.split(/[,.\-;]+/)
+        .map(w => w.trim().toLowerCase())
+        .filter(w => w.length > 0);
+    
+    // Remove duplicates
+    return [...new Set(variants)];
+}
+
+/**
+ * Get display text for word (first variant or full text)
+ */
+function getWordDisplayText(wordText) {
+    const variants = parseWordVariants(wordText);
+    if (variants.length > 1) {
+        return variants[0] + ` (+${variants.length - 1})`;
+    }
+    return wordText;
 }
 
 // ===================================
@@ -239,7 +277,7 @@ function cleanupOldWords() {
     words = words.filter(word => {
         if (word.intervalIndex >= INTERVALS.length - 1 && word.lastReviewed) {
             const daysSinceLastReview = (now - new Date(word.lastReviewed)) / (1000 * 60 * 60 * 24);
-            return daysSinceLastReview < 15;
+            return daysSinceLastReview < 30; // Changed to 30 days for final interval
         }
         return true;
     });
@@ -387,9 +425,9 @@ function deleteVideo(videoId) {
 }
 
 /**
- * Search for a word across all video subtitles
+ * Search for a single word variant in all video subtitles
  */
-function searchWordInSubtitles(word) {
+function searchSingleWordInSubtitles(word) {
     const wordLower = word.toLowerCase();
     const wordRegex = new RegExp(`\\b${wordLower}\\b`, 'i');
     
@@ -405,13 +443,51 @@ function searchWordInSubtitles(word) {
                     videoTitle: video.title,
                     sentence: sentence.text,
                     startTime: sentence.start,
-                    endTime: sentence.end
+                    endTime: sentence.end,
+                    matchedWord: word // Track which variant matched
                 });
             }
         }
     }
     
     return results;
+}
+
+/**
+ * Search for a word (with variants) across all video subtitles
+ * Supports comma, dot, dash separated variants: "open,opened,opening"
+ */
+function searchWordInSubtitles(wordText) {
+    const variants = parseWordVariants(wordText);
+    
+    if (variants.length === 0) return [];
+    
+    const allResults = [];
+    
+    // Search for each variant and group results
+    for (const variant of variants) {
+        const variantResults = searchSingleWordInSubtitles(variant);
+        allResults.push(...variantResults);
+    }
+    
+    // Sort results: group by variant (in order of input), then by video
+    // First, create a map of variant order
+    const variantOrder = {};
+    variants.forEach((v, index) => {
+        variantOrder[v.toLowerCase()] = index;
+    });
+    
+    // Sort: first by variant order, then by video title, then by start time
+    allResults.sort((a, b) => {
+        const orderA = variantOrder[a.matchedWord.toLowerCase()] || 0;
+        const orderB = variantOrder[b.matchedWord.toLowerCase()] || 0;
+        
+        if (orderA !== orderB) return orderA - orderB;
+        if (a.videoTitle !== b.videoTitle) return a.videoTitle.localeCompare(b.videoTitle);
+        return a.startTime - b.startTime;
+    });
+    
+    return allResults;
 }
 
 // ===================================
@@ -424,9 +500,15 @@ function searchWordInSubtitles(word) {
 function addWord(wordText, meaning = '', notes = '') {
     wordText = wordText.trim().toLowerCase();
     
-    if (words.find(w => w.text === wordText)) {
-        showToast('This word already exists!', 'error');
-        return false;
+    // Check if any variant already exists
+    const newVariants = parseWordVariants(wordText);
+    for (const existingWord of words) {
+        const existingVariants = parseWordVariants(existingWord.text);
+        const overlap = newVariants.filter(v => existingVariants.includes(v));
+        if (overlap.length > 0) {
+            showToast(`Word variant "${overlap[0]}" already exists!`, 'error');
+            return false;
+        }
     }
     
     const now = getCurrentTime();
@@ -564,11 +646,14 @@ function renderWordList() {
         const status = word.intervalIndex === 0 ? 'new' : 
                       word.intervalIndex < INTERVALS.length - 1 ? 'learning' : 'mastered';
         
+        // Display word with variant indicator
+        const displayText = getWordDisplayText(word.text);
+        
         return `
             <div class="word-item ${due ? 'due' : ''} ${status}" data-id="${word.id}">
                 <div class="word-status ${status}"></div>
                 <div class="word-info">
-                    <div class="word-text">${word.text}</div>
+                    <div class="word-text">${displayText}</div>
                     <div class="word-meaning-preview">${word.meaning || 'No meaning added'}</div>
                 </div>
                 <div class="word-meta">
@@ -826,7 +911,12 @@ function handleSaveWord() {
     
     if (addWord(word, meaning, notes)) {
         closeAddWordModal();
-        showToast(`"${word}" has been added!`, 'success');
+        const variants = parseWordVariants(word);
+        if (variants.length > 1) {
+            showToast(`"${variants[0]}" and ${variants.length - 1} variants added!`, 'success');
+        } else {
+            showToast(`"${word}" has been added!`, 'success');
+        }
     }
 }
 
@@ -865,9 +955,10 @@ function handleDeleteWord(wordId) {
     const word = words.find(w => w.id === wordId);
     if (!word) return;
     
-    if (confirm(`Are you sure you want to delete "${word.text}"?`)) {
+    const displayText = getWordDisplayText(word.text);
+    if (confirm(`Are you sure you want to delete "${displayText}"?`)) {
         deleteWord(wordId);
-        showToast(`"${word.text}" has been deleted.`, 'success');
+        showToast(`"${displayText}" has been deleted.`, 'success');
     }
 }
 
@@ -1022,12 +1113,15 @@ function startStudySession() {
     
     const dueWordsList = document.getElementById('dueWordsList');
     if (dueWordsList) {
-        dueWordsList.innerHTML = dueWords.map(word => `
-            <div class="due-word-item" onclick="startWordStudy(${word.id})">
-                <span class="due-word-text">${word.text}</span>
-                <span class="due-word-stage">Stage ${word.intervalIndex + 1}</span>
-            </div>
-        `).join('');
+        dueWordsList.innerHTML = dueWords.map(word => {
+            const displayText = getWordDisplayText(word.text);
+            return `
+                <div class="due-word-item" onclick="startWordStudy(${word.id})">
+                    <span class="due-word-text">${displayText}</span>
+                    <span class="due-word-stage">Stage ${word.intervalIndex + 1}</span>
+                </div>
+            `;
+        }).join('');
     }
 }
 
@@ -1056,9 +1150,12 @@ function startWordStudy(wordId) {
     if (studyListView) studyListView.classList.add('hidden');
     if (singleWordView) singleWordView.classList.remove('hidden');
     
-    // Update word display
+    // Update word display - show all variants
     document.getElementById('wordStage').textContent = `Stage ${currentStudyWord.intervalIndex + 1}`;
-    document.getElementById('studyWordMain').textContent = currentStudyWord.text;
+    
+    const variants = parseWordVariants(currentStudyWord.text);
+    const displayWord = variants.length > 1 ? variants.join(', ') : currentStudyWord.text;
+    document.getElementById('studyWordMain').textContent = displayWord;
     
     const meaningEl = document.getElementById('studyWordMeaning');
     const notesEl = document.getElementById('studyWordNotes');
@@ -1122,14 +1219,16 @@ function findInVideos() {
         return;
     }
     
-    // Search for the word in all subtitles
+    // Search for all variants of the word in all subtitles
     currentVideoResults = searchWordInSubtitles(currentStudyWord.text);
     currentVideoIndex = 0;
     
     if (currentVideoResults.length === 0) {
         document.getElementById('videoPlayerArea')?.classList.add('hidden');
         document.getElementById('noVideoMessage')?.classList.remove('hidden');
-        showToast(`"${currentStudyWord.text}" not found in any video.`, 'error');
+        const variants = parseWordVariants(currentStudyWord.text);
+        const searchedWords = variants.length > 1 ? `"${variants.join('", "')}"` : `"${currentStudyWord.text}"`;
+        showToast(`${searchedWords} not found in any video.`, 'error');
         return;
     }
     
@@ -1151,24 +1250,24 @@ function playVideoResult(index) {
     document.getElementById('noVideoMessage')?.classList.add('hidden');
     document.getElementById('videoPlayerArea')?.classList.remove('hidden');
     
-    // Show the subtitle with highlighted word
+    // Show the subtitle with highlighted word (highlight the matched variant)
     const subtitleDisplay = document.getElementById('subtitleDisplay');
     if (subtitleDisplay) {
         const highlightedSentence = result.sentence.replace(
-            new RegExp(`\\b(${currentStudyWord.text})\\b`, 'gi'),
+            new RegExp(`\\b(${result.matchedWord})\\b`, 'gi'),
             '<span class="highlight">$1</span>'
         );
         subtitleDisplay.innerHTML = `
             <div class="subtitle-time">${formatSeconds(result.startTime)} - ${formatSeconds(result.endTime)}</div>
             <div class="subtitle-text">${highlightedSentence}</div>
-            <div class="subtitle-counter">Example ${index + 1} of ${currentVideoResults.length}</div>
+            <div class="subtitle-counter">Example ${index + 1} of ${currentVideoResults.length} (matched: "${result.matchedWord}")</div>
         `;
     }
     
     // Initialize player
     initializePlayer(result.videoId, result.startTime, result.endTime);
     
-    showToast(`Found in: ${result.videoTitle} (${index + 1}/${currentVideoResults.length})`, 'success');
+    showToast(`Found "${result.matchedWord}" in: ${result.videoTitle} (${index + 1}/${currentVideoResults.length})`, 'success');
 }
 
 /**
@@ -1383,12 +1482,15 @@ function continueOrEndStudy() {
         
         const dueWordsList = document.getElementById('dueWordsList');
         if (dueWordsList) {
-            dueWordsList.innerHTML = remainingDueWords.map(word => `
-                <div class="due-word-item" onclick="startWordStudy(${word.id})">
-                    <span class="due-word-text">${word.text}</span>
-                    <span class="due-word-stage">Stage ${word.intervalIndex + 1}</span>
-                </div>
-            `).join('');
+            dueWordsList.innerHTML = remainingDueWords.map(word => {
+                const displayText = getWordDisplayText(word.text);
+                return `
+                    <div class="due-word-item" onclick="startWordStudy(${word.id})">
+                        <span class="due-word-text">${displayText}</span>
+                        <span class="due-word-stage">Stage ${word.intervalIndex + 1}</span>
+                    </div>
+                `;
+            }).join('');
         }
         
         currentStudyWord = null;
