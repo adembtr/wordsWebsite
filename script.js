@@ -1,7 +1,7 @@
 // ===================================
 // VocabForge - Spaced Repetition English Learning App
 // Complete JavaScript with Video & Subtitle Management
-// ===================================
+// =========================================
 
 // ===================================
 // CONSTANTS & CONFIGURATION
