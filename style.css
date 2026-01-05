@@ -1604,3 +1604,34 @@ body {
     scrollbar-width: thin;
     scrollbar-color: var(--color-bg-tertiary) var(--color-bg-secondary);
 }
+
+
+/* -----------------------------------------------------------------------------
+   Data Sync Section
+   ----------------------------------------------------------------------------- */
+.sync-section {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: center;
+    margin-bottom: var(--space-lg);
+    flex-wrap: wrap;
+}
+
+.btn-sync {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    border: 1px dashed var(--color-border);
+    font-size: 0.75rem;
+    padding: var(--space-sm) var(--space-md);
+}
+
+.btn-sync:hover {
+    background: var(--color-bg-card-hover);
+    border-color: var(--color-accent-primary);
+    color: var(--color-accent-primary);
+}
+
+.btn-sync svg {
+    width: 14px;
+    height: 14px;
+}

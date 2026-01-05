@@ -2,7 +2,7 @@
 // VocabForge - Spaced Repetition English Learning App
 // Complete JavaScript with Video & Subtitle Management
 // ===================================
-
+DOMContentLoaded
 // ===================================
 // CONSTANTS & CONFIGURATION
 // ===================================
@@ -1521,6 +1521,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update UI every minute
     setInterval(updateUI, 60000);
     
+    // Export/Import Buttons
+    document.getElementById('btnExport')?.addEventListener('click', exportData);
+    document.getElementById('btnImport')?.addEventListener('click', () => {
+        document.getElementById('importFileInput')?.click();
+    });
+    document.getElementById('importFileInput')?.addEventListener('change', importData);
+    
     // Add Word Button
     document.getElementById('btnAdd')?.addEventListener('click', openAddWordModal);
     document.getElementById('closeAddModal')?.addEventListener('click', closeAddWordModal);
@@ -1603,3 +1610,88 @@ window.handleDeleteVideo = handleDeleteVideo;
 window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 window.nextExample = nextExample;
 window.showMeaningSequential = showMeaningSequential;
+
+
+// ===================================
+// DATA EXPORT/IMPORT FUNCTIONS
+// ===================================
+
+/**
+ * Export all data to JSON file
+ */
+function exportData() {
+    const data = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        words: words,
+        videos: videos
+    };
+    
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vocabforge-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast(`Exported ${words.length} words and ${videos.length} videos!`, 'success');
+}
+
+/**
+ * Import data from JSON file
+ */
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (!data.words || !data.videos) {
+                throw new Error('Invalid backup file format');
+            }
+            
+            // Confirm before overwriting
+            const wordCount = data.words.length;
+            const videoCount = data.videos.length;
+            
+            if (confirm(`This will replace your current data with:\n- ${wordCount} words\n- ${videoCount} videos\n\nContinue?`)) {
+                // Restore words
+                words = data.words;
+                words.forEach(word => {
+                    word.nextReview = new Date(word.nextReview);
+                    word.addedDate = new Date(word.addedDate);
+                    if (word.lastReviewed) {
+                        word.lastReviewed = new Date(word.lastReviewed);
+                    }
+                });
+                saveWords();
+                
+                // Restore videos
+                videos = data.videos;
+                saveVideos();
+                
+                // Update UI
+                updateUI();
+                
+                showToast(`Imported ${wordCount} words and ${videoCount} videos!`, 'success');
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            showToast('Error importing file. Make sure it\'s a valid backup.', 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset input so same file can be selected again
+    event.target.value = '';
+}
