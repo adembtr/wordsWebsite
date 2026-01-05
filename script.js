@@ -2,7 +2,7 @@
 // VocabForge - Spaced Repetition English Learning App
 // Complete JavaScript with Video & Subtitle Management
 // ===================================
-DOMContentLoaded
+
 // ===================================
 // CONSTANTS & CONFIGURATION
 // ===================================
@@ -1527,7 +1527,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('importFileInput')?.click();
     });
     document.getElementById('importFileInput')?.addEventListener('change', importData);
-    
+
     // Add Word Button
     document.getElementById('btnAdd')?.addEventListener('click', openAddWordModal);
     document.getElementById('closeAddModal')?.addEventListener('click', closeAddWordModal);
