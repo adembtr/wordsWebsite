@@ -42,6 +42,10 @@ let isYouTubeAPIReady = false;
 let currentFilter = 'all';
 let videoCheckInterval = null;
 
+// Word variant navigation
+let currentWordVariants = []; // All variants of current word (e.g., ["define", "defined", "defining"])
+let currentWordVariantIndex = 0; // Which variant we're currently viewing
+
 // Sequential study mode
 let isSequentialMode = false;
 let sequentialWordQueue = [];
@@ -488,6 +492,30 @@ function searchWordInSubtitles(wordText) {
     });
     
     return allResults;
+}
+
+/**
+ * Get unique variants that have video results
+ */
+function getVariantsWithResults() {
+    if (currentVideoResults.length === 0) return [];
+    
+    const variantsSet = new Set();
+    currentVideoResults.forEach(r => {
+        variantsSet.add(r.matchedWord.toLowerCase());
+    });
+    
+    // Return in order of currentWordVariants
+    return currentWordVariants.filter(v => variantsSet.has(v.toLowerCase()));
+}
+
+/**
+ * Get video count for a specific variant
+ */
+function getVariantVideoCount(variant) {
+    return currentVideoResults.filter(r => 
+        r.matchedWord.toLowerCase() === variant.toLowerCase()
+    ).length;
 }
 
 // ===================================
@@ -1008,6 +1036,10 @@ function closeStudyModal() {
     currentVideoResults = [];
     currentVideoIndex = 0;
     
+    // Reset word variant navigation
+    currentWordVariants = [];
+    currentWordVariantIndex = 0;
+    
     // Reset sequential mode
     isSequentialMode = false;
     sequentialWordQueue = [];
@@ -1144,6 +1176,10 @@ function startWordStudy(wordId) {
     currentVideoResults = [];
     currentVideoIndex = 0;
     
+    // Reset word variant navigation
+    currentWordVariants = parseWordVariants(currentStudyWord.text);
+    currentWordVariantIndex = 0;
+    
     const studyListView = document.getElementById('studyListView');
     const singleWordView = document.getElementById('singleWordView');
     
@@ -1223,6 +1259,10 @@ function findInVideos() {
     currentVideoResults = searchWordInSubtitles(currentStudyWord.text);
     currentVideoIndex = 0;
     
+    // Reset word variant navigation
+    currentWordVariants = parseWordVariants(currentStudyWord.text);
+    currentWordVariantIndex = 0;
+    
     if (currentVideoResults.length === 0) {
         document.getElementById('videoPlayerArea')?.classList.add('hidden');
         document.getElementById('noVideoMessage')?.classList.remove('hidden');
@@ -1247,8 +1287,26 @@ function playVideoResult(index) {
     
     const result = currentVideoResults[index];
     
+    // Update currentWordVariantIndex based on the result's matched word
+    const variantIdx = currentWordVariants.findIndex(v => 
+        v.toLowerCase() === result.matchedWord.toLowerCase()
+    );
+    if (variantIdx >= 0) {
+        currentWordVariantIndex = variantIdx;
+    }
+    
     document.getElementById('noVideoMessage')?.classList.add('hidden');
     document.getElementById('videoPlayerArea')?.classList.remove('hidden');
+    
+    // Calculate video counts for current variant
+    const currentVariant = result.matchedWord;
+    const variantResults = currentVideoResults.filter(r => 
+        r.matchedWord.toLowerCase() === currentVariant.toLowerCase()
+    );
+    const variantVideoIndex = variantResults.findIndex(r => 
+        r.videoId === result.videoId && 
+        r.startTime === result.startTime
+    ) + 1;
     
     // Show the subtitle with highlighted word (highlight the matched variant)
     const subtitleDisplay = document.getElementById('subtitleDisplay');
@@ -1257,21 +1315,30 @@ function playVideoResult(index) {
             new RegExp(`\\b(${result.matchedWord})\\b`, 'gi'),
             '<span class="highlight">$1</span>'
         );
+        
+        // Build variant info
+        const variantsWithResults = getVariantsWithResults();
+        let variantInfo = '';
+        if (variantsWithResults.length > 1) {
+            variantInfo = `<div class="subtitle-variant-info">Word: "${currentVariant}" (${currentWordVariantIndex + 1}/${variantsWithResults.length} variants)</div>`;
+        }
+        
         subtitleDisplay.innerHTML = `
             <div class="subtitle-time">${formatSeconds(result.startTime)} - ${formatSeconds(result.endTime)}</div>
             <div class="subtitle-text">${highlightedSentence}</div>
-            <div class="subtitle-counter">Example ${index + 1} of ${currentVideoResults.length} (matched: "${result.matchedWord}")</div>
+            ${variantInfo}
+            <div class="subtitle-counter">Video ${variantVideoIndex} of ${variantResults.length} for "${currentVariant}"</div>
         `;
     }
     
     // Initialize player
     initializePlayer(result.videoId, result.startTime, result.endTime);
     
-    showToast(`Found "${result.matchedWord}" in: ${result.videoTitle} (${index + 1}/${currentVideoResults.length})`, 'success');
+    showToast(`"${result.matchedWord}" in: ${result.videoTitle}`, 'success');
 }
 
 /**
- * Play next video example
+ * Play next video example (same variant)
  */
 function nextExample() {
     if (!currentStudyWord) return;
@@ -1282,16 +1349,82 @@ function nextExample() {
         return;
     }
     
-    // Move to next result
-    currentVideoIndex++;
+    // Get current variant
+    const currentVariant = currentWordVariants[currentWordVariantIndex];
     
-    if (currentVideoIndex >= currentVideoResults.length) {
-        // Loop back to first
-        currentVideoIndex = 0;
-        showToast('Looping back to first example.', 'success');
+    // Find next video of the same variant
+    let nextIndex = currentVideoIndex + 1;
+    let looped = false;
+    
+    while (nextIndex !== currentVideoIndex) {
+        if (nextIndex >= currentVideoResults.length) {
+            nextIndex = 0;
+            looped = true;
+        }
+        
+        if (currentVideoResults[nextIndex].matchedWord.toLowerCase() === currentVariant.toLowerCase()) {
+            break;
+        }
+        
+        nextIndex++;
+        
+        // Safety check to prevent infinite loop
+        if (nextIndex === currentVideoIndex) {
+            break;
+        }
     }
     
+    if (looped && nextIndex <= currentVideoIndex) {
+        showToast(`Looping back to first video for "${currentVariant}"`, 'success');
+    }
+    
+    currentVideoIndex = nextIndex;
     playVideoResult(currentVideoIndex);
+}
+
+/**
+ * Switch to next word variant (e.g., define → defined → defining)
+ */
+function nextWord() {
+    if (!currentStudyWord) return;
+    
+    // Get variants that actually have video results
+    const variantsWithResults = getVariantsWithResults();
+    
+    if (variantsWithResults.length <= 1) {
+        showToast('No other word variants with videos available.', 'error');
+        return;
+    }
+    
+    // Find current variant's position in variantsWithResults
+    const currentVariant = currentWordVariants[currentWordVariantIndex];
+    const currentPosInResults = variantsWithResults.findIndex(v => 
+        v.toLowerCase() === currentVariant.toLowerCase()
+    );
+    
+    // Move to next variant (loop back to first if at end)
+    const nextPosInResults = (currentPosInResults + 1) % variantsWithResults.length;
+    const nextVariant = variantsWithResults[nextPosInResults];
+    
+    // Update currentWordVariantIndex to match
+    currentWordVariantIndex = currentWordVariants.findIndex(v => 
+        v.toLowerCase() === nextVariant.toLowerCase()
+    );
+    
+    // Find the first video result for this variant
+    const firstResultIndex = currentVideoResults.findIndex(r => 
+        r.matchedWord.toLowerCase() === nextVariant.toLowerCase()
+    );
+    
+    if (firstResultIndex >= 0) {
+        currentVideoIndex = firstResultIndex;
+        playVideoResult(currentVideoIndex);
+        
+        const videoCount = getVariantVideoCount(nextVariant);
+        showToast(`Switched to "${nextVariant}" (${videoCount} videos)`, 'success');
+    } else {
+        showToast(`No videos found for "${nextVariant}"`, 'error');
+    }
 }
 
 /**
@@ -1333,6 +1466,10 @@ function autoPlayForSequentialMode() {
     if (videos.length > 0 && isYouTubeAPIReady) {
         currentVideoResults = searchWordInSubtitles(currentStudyWord.text);
         currentVideoIndex = 0;
+        
+        // Reset word variant navigation
+        currentWordVariants = parseWordVariants(currentStudyWord.text);
+        currentWordVariantIndex = 0;
         
         if (currentVideoResults.length > 0) {
             playVideoResult(0);
@@ -1561,6 +1698,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnFindVideo')?.addEventListener('click', findInVideos);
     document.getElementById('btnReplay')?.addEventListener('click', watchAgain);
     document.getElementById('btnNextExample')?.addEventListener('click', nextExample);
+    document.getElementById('btnNextWord')?.addEventListener('click', nextWord);
     document.getElementById('btnKnow')?.addEventListener('click', handleKnow);
     document.getElementById('btnDontKnow')?.addEventListener('click', handleDontKnow);
     
@@ -1609,6 +1747,7 @@ window.handleDeleteWord = handleDeleteWord;
 window.handleDeleteVideo = handleDeleteVideo;
 window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 window.nextExample = nextExample;
+window.nextWord = nextWord;
 window.showMeaningSequential = showMeaningSequential;
 
 

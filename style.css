@@ -31,6 +31,10 @@
     --color-info: #3b82f6;
     --color-info-glow: rgba(59, 130, 246, 0.3);
     
+    /* Purple for Next Word button */
+    --color-purple: #8b5cf6;
+    --color-purple-glow: rgba(139, 92, 246, 0.3);
+    
     /* Text Colors */
     --color-text-primary: #fafafa;
     --color-text-secondary: #a1a1aa;
@@ -1105,6 +1109,13 @@ body {
     line-height: 1.8;
 }
 
+.subtitle-display .subtitle-variant-info {
+    font-size: 0.75rem;
+    color: var(--color-purple);
+    margin-top: var(--space-sm);
+    font-weight: 500;
+}
+
 .subtitle-display .subtitle-counter {
     font-size: 0.7rem;
     color: var(--color-text-tertiary);
@@ -1115,14 +1126,15 @@ body {
 
 .video-controls {
     display: flex;
-    gap: var(--space-md);
+    gap: var(--space-sm);
     justify-content: center;
     margin-top: var(--space-md);
+    flex-wrap: wrap;
 }
 
 .btn-video {
     padding: var(--space-sm) var(--space-md);
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     border: 1px solid var(--color-border);
@@ -1136,6 +1148,19 @@ body {
 .btn-video svg {
     width: 16px;
     height: 16px;
+}
+
+/* Next Word Button - Special Purple Styling */
+.btn-next-word {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--color-purple);
+    color: var(--color-purple);
+}
+
+.btn-next-word:hover {
+    background: rgba(139, 92, 246, 0.25);
+    border-color: var(--color-purple);
+    box-shadow: 0 0 15px var(--color-purple-glow);
 }
 
 /* Sequential Mode - Show Meaning Area */
@@ -1470,6 +1495,20 @@ body {
     
     .response-buttons {
         grid-template-columns: 1fr;
+    }
+    
+    .video-controls {
+        gap: var(--space-xs);
+    }
+    
+    .btn-video {
+        padding: var(--space-xs) var(--space-sm);
+        font-size: 0.7rem;
+    }
+    
+    .btn-video svg {
+        width: 14px;
+        height: 14px;
     }
 }
 
