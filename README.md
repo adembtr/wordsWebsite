@@ -118,13 +118,22 @@ This means:
 
 | Stage | Interval | Total Time |
 |:-----:|:--------:|:----------:|
-| 1 | 12 hours | 12 hours |
-| 2 | 1 day | 1.5 days |
-| 3 | 2 days | 3.5 days |
-| 4 | 3 days | 6.5 days |
-| 5 | 5 days | 11.5 days |
-| 6 | 7 days | 18.5 days |
-| 7 | 15 days | 33.5 days |
+    4,         // 4 hours
+    8,         // 8 hours
+    12,        // 12 hours
+    18,        // 18 hours
+    24,        // 1 day
+    36,        // 1.5 days
+    48,        // 2 days
+    72,        // 3 days
+    96,        // 4 days
+    120,       // 5 days
+    168,       // 7 days
+    240,       // 10 days
+    360,       // 15 days
+    480,       // 20 days
+    600,       // 25 days
+    720        // 30 days (final interval before deletion)
 | ✅ | **Mastered** | Auto-deleted |
 
 **Note:** Clicking "Don't Know" at any stage resets the word to Stage 1 (12 hours).
